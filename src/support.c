@@ -1,10 +1,8 @@
 #include "support.h"
 
+
 int step0 = 0;
 int offset0 = 0;
-int step1 = 0;
-int offset1 = 0;
-int volume = 2400;
 
 //wave parameters
 double A = 1.0;
@@ -19,42 +17,35 @@ void init_wavetable(void) {
         wavetable[i] = (16383 * (wave_fm)) + 16384;
     }
 }
-const double ATTACK_CUTOFF = .1 * N;
-const double ATTACK_MAX = 1;
-const double DIP_CUTTOFF = .2 * N;
-const double DIP_DOWN = .2;
-const double HOLD_CUTTOFF = .6 * N;
-const double HOLD_LEVEL = DIP_MIN;
-const double DECAY_CUTOFF = N;
+
+//Better Envelopw
+// const double ATTACK_CUTOFF = .1 * N;
+// const double ATTACK_MAX = 1;
+// const double DIP_CUTTOFF = .2 * N;
+// const double DIP_DOWN = .2;
+// const double HOLD_CUTTOFF = .6 * N;
+// const double HOLD_LEVEL = DIP_MIN;
+// const double DECAY_CUTOFF = N;
 
 
 
-void init_envelope(void) {
-    for(int i=0; i < N; i++) {
-        double wave_en = 0;
-        if (i < (int)ATTACK_CUTTOFF) {
-            wave_en = ATTACK_MAX * (i/ATTACK_CUTOFF);
-        } else if (i < (int)DIP_CUTTOFF) {;
-            wave_en = ATTACK_MAX - DIP_DOWN * (i-ATTACK_CUTOFF/i-DIP_CUTTOFF)
-        }
-        
-    }
-}
+// void init_envelope(void) {
+//     for(int i=0; i < N; i++) {
+//         double wave_en = 0;
+//         if (i < (int)ATTACK_CUTTOFF) {
+//             wave_en = ATTACK_MAX * (i/ATTACK_CUTOFF);
+//         } else if (i < (int)DIP_CUTTOFF) {;
+//             wave_en = ATTACK_MAX - DIP_DOWN * (i-ATTACK_CUTOFF/i-DIP_CUTTOFF)
+//         }
+//     }
+// }
 
 
-void set_freq(int chan, float f) {
-    if (chan == 0) {
-        if (f == 0.0) {
-            step0 = 0;
-            offset0 = 0;
-        } else
-            step0 = (f * N / RATE) * (1<<16);
-    }
-    if (chan == 1) {
-        if (f == 0.0) {
-            step1 = 0;
-            offset1 = 0;
-        } else
-            step1 = (f * N / RATE) * (1<<16);
+void set_freq(float f) {
+    if (f == 0.0) {
+        step0 = 0;
+        offset0 = 0;
+    } else {
+        step0 = (f * N / RATE) * (1<<16);
     }
 }
