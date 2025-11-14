@@ -1,127 +1,144 @@
-#include <stdio.h>
-#include "pico/stdlib.h"
-#include "hardware/xosc.h"
-#include "pico/multicore.h"
 #include "display.h"
 
-const int DISPLAY_R1 = -1; // Display R1 gpio pin
-const int DISPLAY_B1 = -1; // Display R1 gpio pin
-const int DISPLAY_R2 = -1; // Display R1 gpio pin
-const int DISPLAY_B2 = -1; // Display R1 gpio pin
-const int DISPLAY_A = -1; // Display R1 gpio pin
-const int DISPLAY_C = -1; // Display R1 gpio pin
-const int DISPLAY_CLK = -1; // Display R1 gpio pin
-const int DISPLAY_OE = -1; // Display R1 gpio pin
-const int DISPLAY_G1 = -1; // Display R1 gpio pin
-const int DISPLAY_G2 = -1; // Display R1 gpio pin
-const int DISPLAY_B = -1; // Display R1 gpio pin
-const int DISPLAY_D = -1; // Display R1 gpio pin
-const int DISPLAY_LAT = -1; // Display R1 gpio pin
+#include <stdbool.h>
+#include "pico/stdlib.h"
+#include "hardware/gpio.h"
+#define PIN_R1   8   // Upper half red
+#define PIN_G1   9   // Upper half green
+#define PIN_B1   10   // Upper half blue
+#define PIN_R2   11   // Lower half red
+#define PIN_G2   12   // Lower half green
+#define PIN_B2   13   // Lower half blue
 
-// 1-bit per color per pixel. framebuffer[y][x] bits: 0=R, 1=G, 2=B
-static uint8_t framebuffer[DISPLAY_HEIGHT][DISPLAY_WIDTH];
+#define PIN_A    15   // Row address A
+#define PIN_B    16  // Row address B
+#define PIN_C    17  // Row address C
+#define PIN_D    18  // Row address D
 
-// Display state
-static uint16_t row_hold_us = 80;
-static bool scanning_enabled = false;
+#define PIN_CLK  14  // Clock
+#define PIN_LAT  19  // Latch (STB)
+#define PIN_OE   20  // Output enable (active low)
 
-static inline uint32_t addr_bits_for_row(uint8_t row) {
-    uint32_t v = 0;
-    if (row & 0x1) v |= (1u << DISPLAY_A);
-    if (row & 0x2) v |= (1u << DISPLAY_B);
-    if (row & 0x4) v |= (1u << DISPLAY_C);
-    if (row & 0x8) v |= (1u << DISPLAY_D);
-    return v;
+#define ROW_ON_TIME_US  250 
+
+static uint16_t framebuffer[MATRIX_WIDTH * MATRIX_HEIGHT];
+
+uint16_t display_color565(uint8_t r, uint8_t g, uint8_t b) {
+    uint16_t r5 = (uint16_t)(r & 0xF8) << 8; // upper 5 bits
+    uint16_t g6 = (uint16_t)(g & 0xFC) << 3; // upper 6 bits
+    uint16_t b5 = (uint16_t)(b >> 3);        // upper 5 bits
+    return (uint16_t)(r5 | g6 | b5);
 }
 
-static inline uint32_t data_bits_for_pixels(uint8_t top, uint8_t bottom) {
-    uint32_t v = 0;
-    if (top    & 0x01) v |= (1u << DISPLAY_R1);
-    if (top    & 0x02) v |= (1u << DISPLAY_G1);
-    if (top    & 0x04) v |= (1u << DISPLAY_B1);
-    if (bottom & 0x01) v |= (1u << DISPLAY_R2);
-    if (bottom & 0x02) v |= (1u << DISPLAY_G2);
-    if (bottom & 0x04) v |= (1u << DISPLAY_B2);
-    return v;
+static inline void set_addr_lines(uint8_t row) {
+    gpio_put(PIN_A, (row >> 0) & 0x1);
+    gpio_put(PIN_B, (row >> 1) & 0x1);
+    gpio_put(PIN_C, (row >> 2) & 0x1);
+    gpio_put(PIN_D, (row >> 3) & 0x1);
 }
 
-void display_init(){
-    uint gpio_mask = (1u << DISPLAY_R1) | 
-                     (1u << DISPLAY_B1) | 
-                     (1u << DISPLAY_R2) | 
-                     (1u << DISPLAY_B2) | 
-                     (1u << DISPLAY_A) | 
-                     (1u << DISPLAY_C) | 
-                     (1u << DISPLAY_CLK) | 
-                     (1u << DISPLAY_OE) | 
-                     (1u << DISPLAY_G1) | 
-                     (1u << DISPLAY_G2) | 
-                     (1u << DISPLAY_B) | 
-                     (1u << DISPLAY_D) | 
-                     (1u << DISPLAY_LAT);
-    gpio_init_mask(gpio_mask);
-    gpio_set_dir_masked(gpio_mask, GPIO_OUT);
-
-    gpio_put(DISPLAY_OE, 1);
-    gpio_put(DISPLAY_CLK, 0);
-    gpio_put(DISPLAY_LAT, 0);
-
-    display_clear();
+static inline void pulse_clk(void) {
+    gpio_put(PIN_CLK, 1);
+    sleep_us(1);
+    gpio_put(PIN_CLK, 0);
 }
 
-void display_start(){
-    scanning_enabled = true;
+
+void display_init(void) {
+    const uint PIN_LIST[] = {
+        PIN_R1, PIN_G1, PIN_B1,
+        PIN_R2, PIN_G2, PIN_B2,
+        PIN_A, PIN_B, PIN_C, PIN_D,
+        PIN_CLK, PIN_LAT, PIN_OE
+    };
+
+    for (size_t i = 0; i < sizeof(PIN_LIST)/sizeof(PIN_LIST[0]); ++i) {
+        gpio_init(PIN_LIST[i]);
+        gpio_set_dir(PIN_LIST[i], GPIO_OUT);
+    }
+
+    gpio_put(PIN_CLK, 0);
+    gpio_put(PIN_LAT, 0);
+    gpio_put(PIN_OE, 1); // OE=1 => LEDs OFF
+
+    display_fill(0); // clear framebuffer
 }
 
-void display_stop(){
-    scanning_enabled = false;
-    gpio_put(DISPLAY_OE, 1);
+void display_fill(uint16_t color) {
+    for (int i = 0; i < MATRIX_WIDTH * MATRIX_HEIGHT; ++i) {
+        framebuffer[i] = color;
+    }
 }
 
-void display_refresh(void) {
-    if (!scanning_enabled) return;
+void display_set_pixel(int x, int y, uint16_t color) {
+    if (x < 0 || x >= MATRIX_WIDTH ||
+        y < 0 || y >= MATRIX_HEIGHT) {
+        return;
+    }
+    framebuffer[y * MATRIX_WIDTH + x] = color;
+}
+void display_draw_test_pattern(void) {
+    display_fill(display_color565(0, 0, 0));
 
-    uint32_t mask_addr = (1u << DISPLAY_A) | (1u << DISPLAY_B) | 
-                         (1u << DISPLAY_C) | (1u << DISPLAY_D);
-    uint32_t mask_data = (1u << DISPLAY_R1) | (1u << DISPLAY_G1) | (1u << DISPLAY_B1) |
-                         (1u << DISPLAY_R2) | (1u << DISPLAY_G2) | (1u << DISPLAY_B2);
+    uint16_t band_colors[8] = {
+        display_color565(255,   0,   0), 
+        display_color565(255, 255,   0),
+        display_color565(0,   255,   0), 
+        display_color565(0,   255, 255),
+        display_color565(0,     0, 255), 
+        display_color565(255,   0, 255), 
+        display_color565(255, 255, 255),
+        display_color565(0,     0,   0)
+    };
 
-    for (uint8_t row = 0; row < DISPLAY_HEIGHT / 2; ++row) {
-        gpio_put(DISPLAY_OE, 1);
-
-        gpio_put_masked(mask_addr, addr_bits_for_row(row));
-
-        for (uint8_t x = 0; x < DISPLAY_WIDTH; ++x) {
-            uint8_t top    = framebuffer[row][x];
-            uint8_t bottom = framebuffer[row + DISPLAY_HEIGHT/2][x];
-
-            gpio_put_masked(mask_data, data_bits_for_pixels(top, bottom));
-
-            gpio_put(DISPLAY_CLK, 1);
-            gpio_put(DISPLAY_CLK, 0);
-        }
-
-        gpio_put(DISPLAY_LAT, 1);
-        gpio_put(DISPLAY_LAT, 0);
-
-        gpio_put(DISPLAY_OE, 0);
-        if (row_hold_us) {
-            sleep_us(row_hold_us);
+    for (int x = 0; x < MATRIX_WIDTH; ++x) {
+        int band = (x * 8) / MATRIX_WIDTH;
+        uint16_t c = band_colors[band];
+        for (int y = 0; y < MATRIX_HEIGHT; ++y) {
+            display_set_pixel(x, y, c);
         }
     }
 }
 
-void display_set_brightness(uint8_t percent) {
-    if (percent > 100) percent = 100;
-    row_hold_us = (uint16_t)((percent * 200u) / 100u);
-}
 
-void display_clear(void) {
-    memset(framebuffer, 0, sizeof(framebuffer));
-}
+void display_refresh_once(void) {
+    for (int row = 0; row < MATRIX_HEIGHT / 2; ++row) {
+        gpio_put(PIN_OE, 1); // LEDs off
 
-void display_set_pixel(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
-    if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT) return;
-    uint8_t v = (r ? 1u : 0u) | (g ? 2u : 0u) | (b ? 4u : 0u);
-    framebuffer[y][x] = v;
+        set_addr_lines((uint8_t)row);
+
+        for (int x = 0; x < MATRIX_WIDTH; ++x) {
+            int upper_index = row * MATRIX_WIDTH + x;
+            int lower_index = (row + MATRIX_HEIGHT / 2) * MATRIX_WIDTH + x;
+
+            uint16_t c1 = framebuffer[upper_index];
+            uint16_t c2 = framebuffer[lower_index];
+
+            bool r1 = (c1 & 0xF800) != 0;
+            bool g1 = (c1 & 0x07E0) != 0;
+            bool b1 = (c1 & 0x001F) != 0;
+
+            bool r2 = (c2 & 0xF800) != 0;
+            bool g2 = (c2 & 0x07E0) != 0;
+            bool b2 = (c2 & 0x001F) != 0;
+
+            gpio_put(PIN_R1, r1);
+            gpio_put(PIN_G1, g1);
+            gpio_put(PIN_B1, b1);
+
+            gpio_put(PIN_R2, r2);
+            gpio_put(PIN_G2, g2);
+            gpio_put(PIN_B2, b2);
+
+            pulse_clk();
+        }
+
+        gpio_put(PIN_LAT, 1);
+        sleep_us(1);
+        gpio_put(PIN_LAT, 0);
+
+        gpio_put(PIN_OE, 0); // LEDs on
+        sleep_us(ROW_ON_TIME_US);
+        gpio_put(PIN_OE, 1); // LEDs off before changing row
+    }
 }
