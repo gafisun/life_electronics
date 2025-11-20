@@ -4,7 +4,7 @@
 #include "pico/multicore.h"
 
 #include "display.h"
-
+#include ""
 
 
 #define SIZE 32
@@ -266,8 +266,8 @@ int main(){
         //update matrix array
         update_matrix();
 
-        uint16_t v = adc_read_avg_u12(ADC_SAMPLES);
-        uint16_t delay_ms = adc_scale_u12(v,DELAY_MIN_MS,DELAY_MAX_MS);
+        uint16_t v = 3;//adc_read_avg_u12(ADC_SAMPLES);
+        uint16_t delay_ms =  50;//adc_scale_u12(v,DELAY_MIN_MS,DELAY_MAX_MS);
         sleep_ms(delay_ms);
     } while(!intr_flag);
     deinit_stop_isr();
