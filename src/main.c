@@ -1,3 +1,4 @@
+#include "pico/stdlib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "hardware/gpio.h"
