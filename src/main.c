@@ -205,7 +205,7 @@ int main(){
     // call inits
     
     init_keypad();
-
+    display_init();
     char key = 0;
 
     //TEST DISPLAY 1 MIN
