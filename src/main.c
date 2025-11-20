@@ -19,6 +19,7 @@ void init_adc();
 void init_pwm();
 void init_matrix();
 */ // something like these are needed
+int matrix[SIZE][SIZE]={0};
 
 bool intr_flag = false;
 bool matrix_is_readable = true;
@@ -115,11 +116,19 @@ void display_matrix(){
     //drive the LEDS 
     for(int row = 0; row < SIZE; row++){
         for(int col = 0; col < SIZE; col++){
+            int val = (matrix[row][col] == 1) ? 255 : 0;
             if(row == cursor_y && col == cursor_x){
                 // special cursor indicator
+                if(val){
+                    display_set_pixel(col,row,0,val,0); // disp green
+                }
+                else{
+                    display_set_pixel(col,row,val,0,0); // disp red
+                }
+                
             }
             else{
-                //drive_led(row,col,matrix[row][col]);
+                display_set_pixel(col,row, val,val,val); // disp white if val
             }
 
         }
@@ -131,9 +140,52 @@ void display_matrix(){
     sleep_ms(DRIVE_TIME_MS);
 }
 
-
+//update the value of the matrix for the next iteration
 void update_matrix(){
+    short neighbors[SIZE][SIZE] = {0};
 
+    //find the amt of neighbors for each row
+    for(int row = 0; row < SIZE; row++){
+        for(int col = 0; col < SIZE; col++){
+            if(row != 0){
+                neighbors[row][col] += matrix[row-1][col];
+            }
+            if(col != 0){
+                neighbors[row][col] += matrix[row][col-1];
+            }
+            if(row != SIZE - 1){
+                neighbors[row][col] += matrix[row+1][col];
+            }
+            if(col != SIZE - 1){
+                neighbors[row][col] += matrix[row][col+1];
+            }
+        }
+    }
+
+    //make sure core1 is not currently reading from the matrix
+    while(!matrix_is_writeable){
+        tight_loop_contents();
+    }
+    //update the matrix values based on the # of neighbors
+    matrix_is_readable = false;
+    for(int row = 0; row < SIZE; row++){
+        for(int col = 0; col < SIZE; col++){
+            switch(neighbors[row][col]){
+                case 2: //if 2 neighbors, don't change
+                matrix[row][col] = matrix[row][col];
+                break;
+                case 3: //if 3 neighbors, make alive
+                matrix[row][col] = 1;
+                break;
+                default: // if 0,1,4 neighbors, kill
+                matrix[row][col] = 0;
+
+            }
+
+        }
+    }
+    matrix_is_readable = true;
+    
 
 }
 
@@ -169,7 +221,13 @@ int main(){
             cursor_x == 0 ? SIZE - 1 : cursor_x - 1;
         }
         else if(key == '5'){
-            //toggle pixel at cursor
+
+            while(!matrix_is_writeable){
+                tight_loop_contents();
+            }
+            matrix_is_readable = false;
+            matrix[cursor_y][cursor_x] = 1 - matrix[cursor_y][cursor_x]; //toggle value at cursor
+            matrix_is_readable = true;
         }
         else if(key == '6'){
             cursor_x == SIZE - 1 ? 0 : cursor_x + 1;
@@ -182,6 +240,7 @@ int main(){
 
     } while( key != 'D');
 
+    sleep_ms(100);
     //init interrupt
     init_stop_isr();
 
@@ -192,13 +251,13 @@ int main(){
         update_matrix();
 
         //fetch value from ADC
-
+        //int ADC_out = get_val_ADC();
         //sleep_ms(adc_out adjusted);
-
+        sleep_ms(200); //placeholder
     } while(!intr_flag);
     deinit_stop_isr();
     sleep_ms(100);
-
+    intr_flag = 0;
     }
 
     
