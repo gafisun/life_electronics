@@ -9,9 +9,13 @@
 
 #define SIZE 32
 #define DRIVE_TIME_MS 16
+
 const char keymap[16] = "DCBA#9630852*741";
 char cursor_x = SIZE / 2;
 char cursor_y = SIZE / 2;
+
+
+
 //definitions
 /*
 void init_keypad();
