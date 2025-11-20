@@ -3,12 +3,15 @@
 #include "hardware/gpio.h"
 #include "pico/multicore.h"
 
-//#include "display.h"
-//#include "display.c"
+#include "display.h"
+
 
 
 #define SIZE 32
 #define DRIVE_TIME_MS 16
+#define ADC_SAMPLES 8
+#define DELAY_MIN_MS 30
+#define DELAY_MAX_MS 800
 
 const char keymap[16] = "DCBA#9630852*741";
 char cursor_x = SIZE / 2;
@@ -225,11 +228,11 @@ int main(){
         key = read_key();
         //set cursor indication
         if(key == '2'){
-            cursor_y == 0 ? SIZE - 1 : cursor_y - 1;
+            cursor_y = (cursor_y == 0 ? SIZE - 1 : cursor_y - 1);
         }
         else if(key == '4')
         {
-            cursor_x == 0 ? SIZE - 1 : cursor_x - 1;
+            cursor_x = (cursor_x == 0 ? SIZE - 1 : cursor_x - 1);
         }
         else if(key == '5'){
 
@@ -237,14 +240,14 @@ int main(){
                 tight_loop_contents();
             }
             matrix_is_readable = false;
-            matrix[cursor_y][cursor_x] = 1 - matrix[cursor_y][cursor_x]; //toggle value at cursor
+            matrix[(int)cursor_y][(int)cursor_x] = 1 - matrix[(int)cursor_y][(int)cursor_x]; //toggle value at cursor
             matrix_is_readable = true;
         }
         else if(key == '6'){
-            cursor_x == SIZE - 1 ? 0 : cursor_x + 1;
+            cursor_x = (cursor_x == SIZE - 1 ? 0 : cursor_x + 1);
         }
         else if(key == '8'){
-            cursor_y == SIZE - 1 ? 0 : cursor_y + 1;
+            cursor_y = (cursor_y == SIZE - 1 ? 0 : cursor_y + 1);
         }
 
 
@@ -263,10 +266,9 @@ int main(){
         //update matrix array
         update_matrix();
 
-        //fetch value from ADC
-        //int ADC_out = get_val_ADC();
-        //sleep_ms(adc_out adjusted);
-        sleep_ms(200); //placeholder
+        uint16_t v = adc_read_avg_u12(ADC_SAMPLES);
+        uint16_t delay_ms = adc_scale_u12(v,DELAY_MIN_MS,DELAY_MAX_MS);
+        sleep_ms(delay_ms);
     } while(!intr_flag);
     deinit_stop_isr();
     sleep_ms(100);
