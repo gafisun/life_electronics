@@ -20,8 +20,7 @@
 #define PIN_OE   20  // Output enable (active low)
 
 #define ROW_ON_TIME_US  250 
-#define MATRIX_WIDTH 32
-#define MATRIX_HEIGHT 32
+
 static uint16_t framebuffer[MATRIX_WIDTH * MATRIX_HEIGHT];
 
 uint16_t display_color565(uint8_t r, uint8_t g, uint8_t b) {
