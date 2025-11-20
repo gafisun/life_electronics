@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "pico/stdlib.h"
 #include "hardware/gpio.h"
+#include "hardware/irq.h"
 #include "pico/multicore.h"
 #include "adc.h"
 

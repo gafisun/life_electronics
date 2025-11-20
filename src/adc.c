@@ -15,13 +15,13 @@ void adc_init_pot(void){
     adc_gpio_init(26);
 }
 
-uint16_t adc_read_u12(void){
+uint16_t adc_read_u12(void){ // one 12-bit reading
     adc_select_input(0);
     (void)adc_read();
     return adc_read();
 }
 
-uint16_t adc_read_avg_u12(int samples){
+uint16_t adc_read_avg_u12(int samples){ // samples - number of ADC readings we want to collect
     uint32_t s = 0;
     for (int i = 0; i < samples; ++i) {
         s += adc_read_u12();
@@ -42,3 +42,10 @@ uint16_t adc_scale_u12(uint16_t v, uint16_t out_min, uint16_t out_max){
 // adc_init_pot();
 // uint16_t v = adc_read_avg_u12(ADC_SAMPLES);
 // uint16_t delay_ms = adc_scale_u12(v, GOL_DELAY_MIN_MS, GOL_DELAY_MAX_MS);
+
+
+/*
+I’m using GPIO26 (ADC0) to read the analog voltage from the pot, and I wrote adc.c and adc.h files modeled after the structure we used in previous labs.
+The code initializes the ADC once, performs averaged 12-bit readings, and scales the raw value to a delay range (about 30–800 ms) to control the Game of Life simulation speed.
+Next, I’ll integrate it into the main loop so the simulation dynamically adjusts speed without blocking other peripherals.
+*/
