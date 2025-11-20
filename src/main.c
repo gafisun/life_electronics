@@ -4,7 +4,7 @@
 #include "pico/multicore.h"
 
 #include "display.h"
-#include ""
+
 
 
 #define SIZE 32
