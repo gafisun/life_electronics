@@ -120,15 +120,15 @@ void display_matrix(){
             if(row == cursor_y && col == cursor_x){
                 // special cursor indicator
                 if(val){
-                    display_set_pixel(col,row,0,val,0); // disp green
+                    display_set_pixel(col,row,display_color565(0,val,0)); // disp green
                 }
                 else{
-                    display_set_pixel(col,row,val,0,0); // disp red
+                    display_set_pixel(col,row,display_color565(val,0,0)); // disp red
                 }
                 
             }
             else{
-                display_set_pixel(col,row, val,val,val); // disp white if val
+                display_set_pixel(col,row, display_color565(val,val,val)); // disp white if val
             }
 
         }
@@ -137,6 +137,7 @@ void display_matrix(){
     matrix_is_writeable = true;
 
     //wait until required based on LED matrix specs
+    display_refresh_once();
     sleep_ms(DRIVE_TIME_MS);
 }
 
@@ -199,13 +200,19 @@ int main(){
 
     char key = 0;
 
+    //TEST DISPLAY 1 MIN
+    display_draw_test_pattern();
+    sleep_ms(60*1000);
+
+
     multicore_launch_core1(display_matrix);
     
     while(1){
 
 
     
-
+    cursor_x = SIZE / 2;
+    cursor_y = SIZE / 2;
     //editor
     do
     {
@@ -245,6 +252,8 @@ int main(){
     init_stop_isr();
 
     //simulation runner
+    cursor_x = -1;
+    cursor_y = -1;
     do{
 
         //update matrix array
