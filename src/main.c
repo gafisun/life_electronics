@@ -2,15 +2,15 @@
 #include "pwm.h"
 
 //support.c
-//void init_wavetable(void);
 void set_freq(int chan, float f);
 
 //pwm.c
 void init_pwm_audio();
 void note_init_timer();
 
-int rate_of_change = 500000;
+int rate_of_change = 750000;
 int play = 1;
+int matrix[32][32];
 
 int main()
 {
@@ -22,13 +22,15 @@ int main()
     set_freq(1, 329.63f);
     set_freq(2, 392.0f);
     set_freq(3, 523.25f);
+    srand(11);
     
     for(;;) { //testing play toggle
-        tight_loop_contents();
-        // sleep_ms(1000);
-        // play = 1;
-        // sleep_ms(10000);
-        // play = 0;
+        for (int i = 0; i < 32; i++) { //random value test
+            for (int j = 0; j < 32; j++) {
+                matrix[i][j] = rand() % 29;
+            }
+        }
+        sleep_us(rate_of_change);
     }
 
     while (true) {

@@ -7,9 +7,6 @@
 #define N 32768 // Size of the wavetable
 #define M 13000 // Size of the Amplitude Envelope
 
-#define BASE_DECAY_RATE 2.8f
-#define HARMONIC_DECAY_SCALER 0.7f
-
 short int wavetable[N];
 double envelope[M];
 

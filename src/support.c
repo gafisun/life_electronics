@@ -11,11 +11,10 @@ uint32_t step3 = 0;
 uint32_t offset3 = 0;
 
 
-
 //wave parameters
 double A = 1.0;
-double beta = 4.0; // High modulation depth
-double K = 1.4142; // Inharmonic ratio (sqrt(2))
+double beta = 4.0;
+double K = 1.4142; //sqrt(2)
 
 void init_wavetable(void) {
     for(int i=0; i < N; i++) {
@@ -23,11 +22,7 @@ void init_wavetable(void) {
         double wave_fm = A * sin(phase + (beta * sin(K * phase)));;
         wavetable[i] = (16383 * (wave_fm)) + 16384;
     }
-    // for(int i=0; i < N; i++) {
-    //     double phase = 2.0 * M_PI * i / N;
-    //     double wave_fm = A * (phase + (beta * (K * phase)));
-    //     wavetable[i] = (16383 * (wave_fm)) + 16384;
-    // }
+    //potential for different sounds
 }
 
 //Amplitude Envelope

@@ -11,10 +11,16 @@
 
 #define ALARM_ZERO 0
 #define ALARM_IRQ0 timer_hardware_alarm_get_irq_num(timer1_hw, ALARM_ZERO)
-#define BASE_FREQ 220
+
+void pwm_audio_handler();
+void note_isr();
+void init_pwm_audio();
+void note_init_timer();
+void set_all_freq();
 
 extern int rate_of_change;
 extern int play;
+extern int matrix[32][32];
 
 
 #endif
