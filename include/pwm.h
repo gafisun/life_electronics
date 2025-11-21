@@ -11,7 +11,7 @@
 
 #define ALARM_ZERO 0
 #define ALARM_IRQ0 timer_hardware_alarm_get_irq_num(timer1_hw, ALARM_ZERO)
-#define BASE_FREQ 65.41
+#define BASE_FREQ 220
 
 extern int rate_of_change;
 extern int play;
