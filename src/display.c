@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
-#define PIN_R1   8   // Upper half red
-#define PIN_G1   9   // Upper half green
+#define PIN_R1   38   // Upper half red
+#define PIN_G1   39  // Upper half green
 #define PIN_B1   10   // Upper half blue
 #define PIN_R2   11   // Lower half red
 #define PIN_G2   12   // Lower half green
