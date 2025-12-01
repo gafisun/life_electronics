@@ -26,15 +26,15 @@ int cursor_x = SIZE / 2;
 int cursor_y = SIZE / 2;
 
 
-int matrix[SIZE][SIZE]={0};
-
+int matrix[32][32]={0};
+uint16_t rate_of_change = 0;
+int play = 1;
 
 volatile bool core1_read_access = true;
 volatile bool core0_write_access = true;
 
 
-uint16_t rate_of_change = 0;
-int play = 1;
+
 
 
 
@@ -224,12 +224,14 @@ int main(){
     init_keypad();
     display_init();
     adc_init_pot();
-    sleep_ms(50); //make sure inits are done before launching display
 
     //pwm inits
-    stdio_init_all();
     note_init_timer();
     init_pwm_audio(); 
+
+    sleep_ms(50); //make sure inits are done before launching display
+
+  
 
     set_freq(0, 261.63f); // Set initial frequency to middle c
     set_freq(1, 329.63f);

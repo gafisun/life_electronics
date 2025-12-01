@@ -90,7 +90,7 @@ void note_isr() {
     timer1_hw->intr |= (1u << ALARM_ZERO);
     
     if (play) {
-        tempo = rate_of_change / 4;
+        tempo = rate_of_change * 333333 / 4096;
         set_all_freq();
         envelope_index = 0;
     }
@@ -104,6 +104,6 @@ void note_init_timer() {
     irq_set_exclusive_handler(ALARM_IRQ0, note_isr);
     irq_set_enabled(ALARM_IRQ0, true);
 
-    uint64_t target0 = timer1_hw->timerawl + tempo;
+    uint64_t target0 = timer1_hw->timerawl + 100000;
     timer1_hw->alarm[ALARM_ZERO] = (uint32_t) target0;
 }
