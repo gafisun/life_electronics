@@ -18,7 +18,7 @@ void init_pwm_audio();
 void note_init_timer();
 void set_all_freq();
 
-extern int rate_of_change;
+extern uint16_t rate_of_change;
 extern int play;
 extern int matrix[32][32];
 
