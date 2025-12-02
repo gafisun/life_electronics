@@ -2,7 +2,6 @@
 #define PWM_H
 
 #include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
@@ -13,13 +12,10 @@
 #define ALARM_IRQ0 timer_hardware_alarm_get_irq_num(timer1_hw, ALARM_ZERO)
 
 void pwm_audio_handler();
-void note_isr();
+void note_play();
 void init_pwm_audio();
-void note_init_timer();
 void set_all_freq();
 
-extern uint16_t rate_of_change;
-extern int play;
 extern int matrix[32][32];
 
 

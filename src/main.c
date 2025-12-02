@@ -11,7 +11,7 @@
 #define SIZE 32
 #define DRIVE_TIME_MS 10
 #define ADC_SAMPLES 8
-#define DELAY_MIN_MS 50
+#define DELAY_MIN_MS 100
 #define DELAY_MAX_MS 800
 
 //support.c
@@ -19,7 +19,7 @@ void set_freq(int chan, float f);
 
 //pwm.c
 void init_pwm_audio();
-void note_init_timer();
+void note_play();
 
 const char keymap[16] = "DCBA#9630852*741";
 int cursor_x = SIZE / 2;
@@ -27,8 +27,7 @@ int cursor_y = SIZE / 2;
 
 
 int matrix[32][32]={0};
-uint16_t rate_of_change = 0;
-int play = 1;
+int play = 0;
 
 volatile bool core1_read_access = true;
 volatile bool core0_write_access = true;
@@ -225,18 +224,18 @@ int main(){
     display_init();
     adc_init_pot();
 
+    gpio_init(22);
+    gpio_set_dir(22, 1);
+
+
     //pwm inits
-    note_init_timer();
     init_pwm_audio(); 
-
-    sleep_ms(50); //make sure inits are done before launching display
-
-  
-
     set_freq(0, 261.63f); // Set initial frequency to middle c
     set_freq(1, 329.63f);
     set_freq(2, 392.0f);
     set_freq(3, 523.25f);
+
+    sleep_ms(50); //make sure inits are done before launching display
     
     //baseline points on the board bc why not
     matrix[16][16] = 1;
@@ -253,6 +252,7 @@ int main(){
     char key = 0;
     cursor_x = SIZE / 2;
     cursor_y = SIZE / 2;
+    int music_only = 0;
 
     multicore_launch_core1(display_matrix);
     // goto keytest;
@@ -293,6 +293,17 @@ int main(){
                 }
                
             }
+            else if (key == 'A') {
+                 music_only = music_only ? 0 : 1;
+                 gpio_put(22, music_only);
+            }
+            else if (key == 'B'){ // random
+                for (int i = 0; i < SIZE; i++) {
+                    for (int j = 0; j < SIZE; j++) {
+                        matrix[i][j] = rand() % 7 == 0;
+                    }
+                }    
+            }
             core1_read_access = true;
             sleep_ms(100);
         }while(key != 'D');
@@ -308,16 +319,35 @@ int main(){
         cursor_y = -1;
         sleep_ms(1000);
         key = 0;
+        play = 1;
         while(key != 'D'){
-            update_matrix();
+            if (!music_only) update_matrix();
             key = read_D();
-            rate_of_change = adc_read_avg_u12(ADC_SAMPLES);
-            uint16_t update_time = adc_scale_u12(rate_of_change,DELAY_MIN_MS,DELAY_MAX_MS);
+            uint16_t v = adc_read_avg_u12(ADC_SAMPLES);
+            uint16_t update_time = adc_scale_u12(v,DELAY_MIN_MS,DELAY_MAX_MS);
             printf("Update Time: %d\n",update_time);
-            sleep_ms(update_time);
+            if (update_time < 350) {
+                if (play) note_play();
+                sleep_ms(update_time);
+            } else if (update_time < 700) {
+                if (play) note_play();
+                sleep_ms(update_time/2);
+                if (play) note_play();
+                sleep_ms(update_time/2);
+            }else {
+                if (play) note_play();
+                sleep_ms(update_time/4);
+                if (play) note_play();
+                sleep_ms(update_time/4);
+                if (play) note_play();
+                sleep_ms(update_time/4);
+                if (play) note_play();
+                sleep_ms(update_time/4);
+            }
         }
         printf("-=EDITOR=-\n");
         sleep_ms(100);
+        play = 0;
         while(key == 'D'){
             key = read_D();
             sleep_ms(50);
