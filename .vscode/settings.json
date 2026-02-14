@@ -1,0 +1,9 @@
+{
+    "C_Cpp.errorSquiggles": "disabled",
+    "files.associations": {
+        "support.h": "c",
+        "stdint.h": "c",
+        "pwm.h": "c",
+        "multicore.h": "c"
+    }
+}
